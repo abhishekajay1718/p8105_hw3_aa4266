@@ -6,10 +6,15 @@ output: github_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, 
+                      fig.width = 8.5,
+                      fig.asp = 0.9,
+                      out.width = "90%"
+                     )
 library(p8105.datasets)
 library(tidyverse)
 library(ggplot2)
+theme_set(theme_bw() + theme(legend.position = "bottom"))
 ```
 
 #Problem 1
@@ -17,18 +22,56 @@ library(ggplot2)
 Data import and cleaning
 
 ```{r p1_data_import}
-brfss_data = 
+brfss_data_tidy = 
   p8105.datasets::brfss_smart2010 %>% 
   janitor::clean_names() %>% 
   rename(resp_id = respid, location_abbr = locationabbr, location_desc = locationdesc) %>% #further manual renaming to appropriate variable names
   filter(topic == "Overall Health") %>% 
-  #spread(key = response, value = data_value) %>%  #restructuring the dataset
-  #janitor::clean_names() %>% 
-  #select(year, location_abbr, location_desc, excellent, very_good, good, fair, poor, everything())
-  select(year, location_abbr, location_desc, response, everything())
+  select(year, location_abbr, location_desc, response, data_value)
 
-
-brfss_data$response = 
-  brfss_data$response %>%  
+brfss_data_tidy$response = 
+  brfss_data_tidy$response %>%  
   factor(levels = c("Excellent", "Very good", "Good", "Fair", "Poor"))
+
+brfss_data_tidy
+```
+Here we cleaned the data by focussing only on the "Overall  Health" topic. Under this topic the response are exhaustively "Excellent", "Very good", "Good", "Fair" and "Poor". 
+
+We recoded the reponse column into a factor data type and set the levels from the "Excellent" to "Poor".
+
+Now we do some *exploratory analysis* of the data in the following:
+
+1. In 2002, which states were observed at 7 locations?
+
+```{r p1.1_brfss}
+brfss_data_tidy %>% 
+  ungroup() %>% 
+  filter(year == 2002) %>% 
+  distinct(location_abbr, location_desc) %>% 
+  group_by(location_abbr) %>% 
+  count() %>% 
+  filter(n == 7) %>% 
+  select(location_abbr) %>% 
+  knitr::kable()
+```
+
+In 2002, the states: CT, FL and NC were observed at 7 locations.
+
+2. Make a “spaghetti plot” that shows the number of locations in each state from 2002 to 2010.
+
+```{r p1.2_brfss}
+#Restructuring the data for the plot required and Spaghetting plot using ggplot
+brfss_data_tidy %>% 
+  ungroup() %>% 
+  group_by(year, location_abbr) %>% 
+  distinct(location_abbr, location_desc) %>% 
+  summarise(location_count = n()) %>% 
+  ggplot(aes(x = year, y = location_count, color = location_abbr)) +
+    geom_line() +
+    labs(
+      title = "Number of locations in each state",
+      x = "Year",
+      y = "Number of locations",
+      color = 'States'
+    ) 
 ```
