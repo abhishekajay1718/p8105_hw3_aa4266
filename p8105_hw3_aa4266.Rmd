@@ -123,6 +123,14 @@ instacart_data =
   p8105.datasets::instacart
 #summary(instacart_data) %>% 
  # View()
+
+n_order_per_hour_of_day = 
+  instacart_data %>% 
+  group_by(order_hour_of_day) %>%
+  distinct(order_id) %>% 
+  summarise(n_order_per_hour = n()) %>% 
+  arrange(desc(n_order_per_hour))
+
 ```
 ###Data Description
 
@@ -130,10 +138,53 @@ The instacart dataset has the dimensions (rows, columns): *`r dim(instacart_data
 
 Some other Key variables apart from the obvious "order_id" and "user_id" as discussed above are the 
 
-  * *`r count(as.tibble(unique(x = instacart_data$department_id)))`* unique departments, with each department given a unique "department_id", 
+  * *`r nrow(instacart_data[unique(instacart_data$department_id),])`* unique departments, with each department given a unique "department_id", 
   
-  * *`r count(as.tibble(unique(x = instacart_data$aisle_id)))`* aisles with unique "aisle_id", 
+  * *`r nrow(instacart_data[unique(instacart_data$aisle_id),])`* aisles with unique "aisle_id", 
   
-  * *`r count(as.tibble(unique(x = instacart_data$product_id)))`* unique products with each "product_name" with a unique "product_id".
+  * *`r nrow(instacart_data[unique(instacart_data$product_id),])`* unique products with each "product_name" with a unique "product_id".
 
 We notice that "eval_set" for all orders in **train** and hence consider that column to be redundant since it can clearly be mentioned in single line in the data description.
+
+Largest number of orders are done at the *`r head(n_order_per_hour_of_day$order_hour_of_day, 1)`* with *`r head(n_order_per_hour_of_day$n_order_per_hour, 1)`* orders. 
+
+Least number of orders are taken at the *`r tail(n_order_per_hour_of_day$order_hour_of_day, 1)`* with *`r tail(n_order_per_hour_of_day$n_order_per_hour, 1)`* orders only.
+
+Further exploratory analysis of the *"instacart_data"*. 
+
+Q1. How many aisles are there, and which aisles are the most items ordered from?
+
+```{r p2.1_instacart}
+instacart_data %>% 
+  group_by(aisle_id, aisle) %>% 
+  select(order_id, aisle_id) %>% 
+  summarise(n_orders_per_aisle = n()) %>% 
+  arrange(desc(n_orders_per_aisle)) %>% 
+  head(1) %>% 
+  knitr::kable()
+```
+There are `r nrow(instacart_data[unique(instacart_data$aisle_id),])` aisles. The table was grouped with aisle and aisle_id just to make sure that the aisle name is mentioned in the table, elsewise, each aisle has a unique aisle_id and hence just taking either one of them for grouping won't change the answer. 
+
+Since each order_id is unique to a single order, summarising along the group gives us the number of orders per aisle.
+
+Q2. Make a plot that shows the number of items ordered in each aisle. Order aisles sensibly, and organize your plot so others can read it.
+
+```{r p2.2_instacart}
+instacart_data %>% 
+  group_by(aisle) %>% 
+  summarise(n_items = n()) %>% 
+  mutate(aisle = fct_reorder(aisle, desc(n_items))) %>% 
+  ggplot(aes(x = aisle, y = n_items)) +
+  geom_point() +
+  scale_y_continuous(breaks = c(100, 1000, 10000, 100000, 150000),
+                     limits = c(100, 160000), 
+                     labels = c("100", "1000", "10000", "100000", "150000")
+                     ) +
+  theme(axis.text.x = element_text(color = "#993333", angle = 90, size = rel(0.8), hjust = 1)) +
+  labs(
+    title = "Number of items bought from each aisle",
+    x = "Aisles",
+    y = "Number of items", 
+    caption = "Data from Instacart dataset"
+  ) #From http://www.sthda.com/english/wiki/ggplot2-axis-ticks-a-guide-to-customize-tick-marks-and-label
+```
