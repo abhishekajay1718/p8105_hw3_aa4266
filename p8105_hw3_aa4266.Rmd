@@ -111,3 +111,29 @@ brfss_data_tidy %>%
 ```
 
 In the above five-panel plot, we show the distribution of the proportion of the five responses per year per state.
+
+
+#Problem 2
+
+Here we work on the Instacart data from the p8105.datasets package.
+
+Data Import
+```{r p2_data_import}
+instacart_data =
+  p8105.datasets::instacart
+#summary(instacart_data) %>% 
+ # View()
+```
+###Data Description
+
+The instacart dataset has the dimensions (rows, columns): *`r dim(instacart_data)`*. It basically describes the various characteristics associated with a specific order, pin pointed using the order_id. There are *`r count(as.tibble(unique(x = instacart_data$order_id)))`* number of unique orders. There are *`r count(as.tibble(unique(x = instacart_data$user_id)))`* unique users. Since both the numbers are same, we infer that the each unique user had only one unique order (characterised by an order_id) by them. 
+
+Some other Key variables apart from the obvious "order_id" and "user_id" as discussed above are the 
+
+  * *`r count(as.tibble(unique(x = instacart_data$department_id)))`* unique departments, with each department given a unique "department_id", 
+  
+  * *`r count(as.tibble(unique(x = instacart_data$aisle_id)))`* aisles with unique "aisle_id", 
+  
+  * *`r count(as.tibble(unique(x = instacart_data$product_id)))`* unique products with each "product_name" with a unique "product_id".
+
+We notice that "eval_set" for all orders in **train** and hence consider that column to be redundant since it can clearly be mentioned in single line in the data description.
