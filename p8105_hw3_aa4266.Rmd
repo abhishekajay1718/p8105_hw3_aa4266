@@ -41,7 +41,7 @@ We recoded the reponse column into a factor data type and set the levels from th
 
 Now we do some *exploratory analysis* of the data in the following:
 
-1. In 2002, which states were observed at 7 locations?
+Q1. In 2002, which states were observed at 7 locations?
 
 ```{r p1.1_brfss}
 brfss_data_tidy %>% 
@@ -57,7 +57,7 @@ brfss_data_tidy %>%
 
 In 2002, the states: CT, FL and NC were observed at 7 locations.
 
-2. Make a “spaghetti plot” that shows the number of locations in each state from 2002 to 2010.
+Q2. Make a “spaghetti plot” that shows the number of locations in each state from 2002 to 2010.
 
 ```{r p1.2_brfss}
 #Restructuring the data for the plot required and Spaghetting plot using ggplot
@@ -75,3 +75,39 @@ brfss_data_tidy %>%
       color = 'States'
     ) 
 ```
+
+In the above we show a spaghetting plot for number of location sin each state from 2002 to 2010.
+
+Q3. Make a table showing, for the years 2002, 2006, and 2010, the mean and standard deviation of the proportion of “Excellent” responses across locations in NY State.
+
+```{r p1.3_brfss}
+brfss_data_tidy %>% 
+  ungroup() %>% 
+  filter(year == 2002 | year == 2006 | year == 2010, location_abbr == "NY", response == "Excellent") %>% 
+  group_by(year) %>%
+  summarise(mean_excellent = mean(data_value, na.rm = TRUE),
+            sd_excellent = sd(data_value, na.rm = TRUE)
+  ) %>% 
+  knitr::kable(digits = 2)
+```
+
+The above table displays the mean and standard deviation of the *excellent* responses from different locations in NY State for years 2002, 2006 and 2010
+
+Q4. For each year and state, compute the average proportion in each response category (taking the average across locations in a state). Make a five-panel plot that shows, for each response category separately, the distribution of these state-level averages over time.
+
+```{r p1.4_brfss}
+brfss_data_tidy %>% 
+  ungroup() %>% 
+  group_by(year, location_abbr, response) %>% 
+  summarise(mean_response = mean(data_value)) %>% 
+  ggplot(aes(x = year, y = mean_response, color = location_abbr)) +
+  geom_point() +
+  facet_grid(~ response) +
+  labs(
+      title = "Distribution of state-level averages for each year",
+      x = "Year",
+      y = "Average Proportion (%)"
+    ) 
+```
+
+In the above five-panel plot, we show the distribution of the proportion of the five responses per year per state.
