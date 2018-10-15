@@ -136,6 +136,8 @@ n_order_per_hour_of_day =
 
 The instacart dataset has the dimensions (rows, columns): *`r dim(instacart_data)`*. It basically describes the various characteristics associated with a specific order, pin pointed using the order_id. There are *`r count(as.tibble(unique(x = instacart_data$order_id)))`* number of unique orders. There are *`r count(as.tibble(unique(x = instacart_data$user_id)))`* unique users. Since both the numbers are same, we infer that the each unique user had only one unique order (characterised by an order_id) by them. 
 
+The structure of the dataset is: `r str(instacart_data)`
+
 Some other Key variables apart from the obvious "order_id" and "user_id" as discussed above are the 
 
   * *`r nrow(instacart_data[unique(instacart_data$department_id),])`* unique departments, with each department given a unique "department_id", 
@@ -188,3 +190,125 @@ instacart_data %>%
     caption = "Data from Instacart dataset"
   ) #From http://www.sthda.com/english/wiki/ggplot2-axis-ticks-a-guide-to-customize-tick-marks-and-label
 ```
+
+We see that the fresh vegetables and the fresh fruits are the aisles with the most orders. We have used a continuous scale on the y-axis to show the drastic difference between the number of items bought from the fresh fruits and fresh vegetables aisles and the rest of the aisles. We see that the remaining aisles at the right end of the graph have more or less a similar amount of items sold through it. 
+
+Q3. Make a table showing the most popular item in each of the aisles “baking ingredients”, “dog food care”, and “packaged vegetables fruits”.
+
+```{r p2.3_instacart}
+instacart_data %>% 
+  group_by(aisle, product_name) %>% 
+  filter(aisle == "baking ingredients" | aisle == "dog food care" | aisle == "packaged vegetables fruits") %>%  
+  summarise(pop_product = n()) %>% 
+  group_by(aisle) %>% 
+  filter(pop_product == max(pop_product)) %>% 
+  knitr::kable(col.names = c("Aisle", "Product", "Amount Sold"))
+```
+
+The most popular items sold among each of the three aisles is calculated by first grouping aisles and products to get the count of each product sold per aisle and then by aisle to see the product sold the most in all of that given aisle.
+
+Most popular products in the following aisles are: 
+
+  * baking ingredients - Light Brown Sugar
+  
+  * dog food care - Snacks Sticks Chicken and Reci Recipe Dog Treats
+  
+  * packaged vegetables fruits - Organic Baby Spinach
+  
+Q4. Make a table showing the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week; format this table for human readers (i.e. produce a 2 x 7 table).
+
+```{r p2.4_instacart}
+instacart_data %>% 
+  filter(product_name == "Pink Lady Apples" | product_name == "Coffee Ice Cream") %>% 
+  mutate(order_dow = recode(order_dow, '0' = "Sunday", '1' = "Monday", '2' = "Tuesday", '3' = "Wednesday", '4' = "Thursday", '5' = "Friday", '6' = "Saturday")) %>% 
+  group_by(product_name, order_dow) %>% 
+  summarise(mean_hour_of_day = mean(order_hour_of_day)) %>%
+  spread(key = order_dow, value = mean_hour_of_day) %>% 
+  knitr::kable(digits = 2)
+```
+
+Here we have a tablw showing the mean of the hour at which Coffee Ice Cream and Pink Lady Apples are ordered on a given day of week respectively.
+
+We infer that the fruit -- Pink Lady Apples are ordered usually in the first half of the day while COffee Ice Cream is more prefered post lunch hours.
+
+#Problem 3
+
+Data import and exploration
+```{r p3}
+ny_noaa_data = 
+  p8105.datasets::ny_noaa %>% 
+  janitor::clean_names()
+
+summary(ny_noaa_data) %>% 
+  knitr::kable()
+```
+
+###Data Description
+
+Here we have a data set from the *National Oceanic and Atmospheric Administration* taken from the p8105.datasets package that acquired the dataset from the rnoaa package avaialble on CRAN. 
+
+It contains relevant weather informations collected from all New York state weather stations from January 1, 1981 through December 31, 2010. 
+
+The dimensions of the dataset (rows, columns) are `r dim(ny_noaa_data)`. The key variables here are the weather station ID (column name: id), snowfall in mm (column name: snow), precipitation in tenths of mm (column name: prcp), min and max temperature in tenths of celsius (column names: tmin and tmax respectively).
+
+The structure of the dataset is: `r str(ny_noaa_data)`
+
+There are `r ny_noaa_data %>% filter(is.na(prcp)) %>% count()/nrow(ny_noaa_data) * 100`% NAs in the precipitation column. 
+
+There are `r ny_noaa_data %>% filter(is.na(snow)) %>% count()/nrow(ny_noaa_data) * 100`% NA's in the snow column.
+
+There are `r ny_noaa_data %>% filter(is.na(snwd)) %>% count()/nrow(ny_noaa_data) * 100`% NA's in the Snow depth (snwd) column.
+
+There are `r ny_noaa_data %>% filter(is.na(tmin)) %>% count()/nrow(ny_noaa_data) * 100`% NA's in the minimum temperature column.
+
+There are `r ny_noaa_data %>% filter(is.na(tmax)) %>% count()/nrow(ny_noaa_data) * 100`% NA's in the max temperature column.
+
+As can be seen above, the issue of missing data is a real problem with our data set here since around 44% of our tmin and tmax values are missing, nearly 15% of our snowfall data is missing and henceforth. This is will result in lack of evidence to support or reject any hypothesis. 
+
+
+
+Q1. Do some data cleaning. Create separate variables for year, month, and day. Ensure observations for temperature, precipitation, and snowfall are given in reasonable units. For snowfall, what are the most commonly observed values? Why?
+
+```{r p3.1_noaa, cache = TRUE}
+
+ny_noaa_data_tidy = 
+  ny_noaa_data %>% 
+  separate(date, into = c("year", "month", "day"), sep = "-") %>% 
+  mutate(month = as.integer(month), year = as.integer(year), day = as.integer(day), tmin = as.integer(tmin), tmax = as.integer(tmax)) %>% 
+  mutate(month = month.name[month], tmin = tmin / 10, tmax = tmax / 10, prcp = prcp / 10) #since they're in tenths of mm/celsius in ny_noaa_data 
+  
+ny_noaa_most_snow =
+  ny_noaa_data_tidy %>% 
+  group_by(snow) %>% 
+  count(snow) %>% 
+  arrange(desc(n)) %>% 
+  head()
+```
+We divide the precipitation, minimun temperature and maximum temperature by 10 since all these values are in tenths of their units (mm, degree celsius, degree celsius respectively) in the noaa dataset.
+
+ `r knitr::kable(ny_noaa_most_snow, caption = "The most observed snowfall values over these 30 years", col.names = c("snowfall (mm)", "no. of observations"))`
+
+Furthermore, the above table shows the 6 most observed values of precipitation in the noaa table. One can notice that 2nd most repeated observation is NA (i.e missing) and hence missing values are a serious problem in our data set due to its predominance in our dataset. 0 mm snowfall in the most observed value in all our dataset. This is because most of the time in the 30 years that we took station data, most days didn't have any snowfall. 
+
+Q2. Make a two-panel plot showing the average max temperature in January and in July in each station across years. Is there any observable / interpretable structure? Any outliers?
+
+```{r p3.2_noaa}
+ny_noaa_data_tidy %>% 
+  group_by(year, month, id) %>% 
+  filter(month == "January" | month == "July") %>% 
+  summarise(mean_tmax = mean(tmax, na.rm = TRUE)) %>% 
+  ggplot(aes(x = year, y = mean_tmax, group = year)) +
+  geom_boxplot() +
+  facet_grid(~ month) +
+  labs(
+    title = "Average max temperature for Jan and July in each station across 1981 to 2010",
+    x = "Year",
+    y = "Average max temperature (C)"
+  )
+```
+
+There is a clear observable structure between the two panels, one from January and the other from July. We see that the average temperature in January has had a median near 0 degree celsius all through the years 1981 to 2010. However, the median of the average temperature in July has been somewhere between 25 and 20 degree celsius for the month of July all through the years. 
+
+We do notice quite a few outliers. January 1994 had a median near -5 degree celsius, however, quite a few outliers are there near and aboe 0 degree celsius for that year. Similar scenario is observed for January 2009. It is helpful to notice that there are outlier is most of the years for January data except 1981, 1985, 1989, 1997 and 2006.
+
+Similarly for the July datasets except for 1999, 2009 and 2010 all other years have outlier(s). However, most of the outliers are similarly located around 20 degree celsius. However, one station in 1987 had a noticably lower temperature than the rest with around 14 degree celsius.
